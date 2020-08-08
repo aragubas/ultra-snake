@@ -52,7 +52,7 @@ class Food:
 
             self.AnimationController.CurrentMode = False
             self.AnimationController.Enabled = True
-            self.AnimationController.ValueMultiplier = 5.9
+            self.AnimationController.ValueMultiplier = 1.0
 
         if self.AnimationController.Value <= 0:
             self.DeleteEnd = True
@@ -71,17 +71,21 @@ class Player:
         self.Score = 0
         self.IsClient = False
         self.IsDead = False
+        self.VarListClearWhenDeadTrigger = False
+        self.VarList = list()
+        self.IsOnScreen = False
 
     def Draw(self, DISPLAY):
         # -- draw the snake -- #
         if not self.IsDead:
             for i, x in enumerate(self.snake_list):
-
                 shape.Shape_Circle(DISPLAY, game.CameraX + x[0] + 26 / 2, game.CameraY + x[1] + 26 / 2, 26 / 2, ((self.PlayerColor[0]) + i, (self.PlayerColor[1]) + i, (self.PlayerColor[2]) + i))
 
         # -- Draw the Head -- #
         if self.IsDead:
             shape.Shape_Circle(DISPLAY, game.CameraX + self.Rectangle[0] + 26 / 2, game.CameraY + self.Rectangle[1] + 26 / 2, 26 / 2, (200, 55, 75))
+        else:
+            shape.Shape_Circle(DISPLAY, game.CameraX + self.Rectangle[0] + 26 / 2, game.CameraY + self.Rectangle[1] + 26 / 2, 26 / 2, self.PlayerColor)
 
         # -- Draw the Nickname -- #
         TextX = game.CameraX + self.Rectangle[0] - game.Game.ConteudoPadrao.GetFont_width("/PressStart2P.ttf", 12, self.Nickname) / 2
@@ -90,8 +94,12 @@ class Player:
 
         if self.IsDead:
             Text += "\nDead"
+        Opacity = 155
 
-        game.Game.ConteudoPadrao.FontRender(DISPLAY, "/PressStart2P.ttf", 12, Text, (255, 255, 255), TextX, TextY, backgroundColor=(0, 0, 0), Opacity=155)
+        if self.Nickname == game.CurrentNickname:
+            Opacity = 255
+
+        game.Game.ConteudoPadrao.FontRender(DISPLAY, "/PressStart2P.ttf", 12, Text, (255, 255, 255), TextX, TextY, backgroundColor=(0, 0, 0), Opacity=Opacity)
 
     def Update(self):
         self.Rectangle = pygame.Rect(self.PlayerPos[0], self.PlayerPos[1], 26, 26)
@@ -127,6 +135,7 @@ class Player:
         if self.SnakeSize > 700:
             self.SnakeSize = 700
 
+        # Update the Snake Logic
         if len(self.snake_list) > self.SnakeSize:
             del self.snake_list[0]
         else:

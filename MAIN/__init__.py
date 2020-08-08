@@ -26,6 +26,7 @@ ConteudoPadrao = cntMng.ContentManager()
 def Initialize(DISPLAY):
     ConteudoPadrao.SetFontPath("Conteudo/Fonts")
     ConteudoPadrao.LoadSpritesInFolder("Conteudo/Sprite")
+    ConteudoPadrao.LoadSoundsInFolder("Conteudo/Sound")
 
     MAIN.ReceiveCommand(0, 60)
     MAIN.ReceiveCommand(5, "Ultra Snake 1.0")
