@@ -22,6 +22,7 @@ from random import randint
 from UltraSnake.MAIN.Screens import GameScreen
 
 ConteudoPadrao = cntMng.ContentManager()
+SelectedScreen = GameScreen
 
 def Initialize(DISPLAY):
     ConteudoPadrao.SetFontPath("Conteudo/Fonts")
@@ -33,17 +34,23 @@ def Initialize(DISPLAY):
 
     GameScreen.Initialize()
 
+    ConteudoPadrao.PlaySound("/Satanas.wav", 2.0, ForcePlay=True, PlayOnSpecificID=66)
+
 def Update():
-    GameScreen.Update()
+    global SelectedScreen
+
+    SelectedScreen.Update()
+    ConteudoPadrao.PlaySound("/Satanas.wav", 2.0, ForcePlay=True, PlayOnSpecificID=66)
 
 def GameDraw(DISPLAY):
     global Jogador
     global FoodCollection
     global GameOver
+    global SelectedScreen
 
     DISPLAY.fill((0, 0, 0))
 
-    GameScreen.GameDraw(DISPLAY)
+    SelectedScreen.GameDraw(DISPLAY)
 
     DebugText = "FPS: {0}/{1}\n" \
                 "CameraX: {2}\n" \
@@ -52,4 +59,6 @@ def GameDraw(DISPLAY):
     ConteudoPadrao.FontRender(DISPLAY, "/PressStart2P.ttf", 12, DebugText, (255, 0, 255), 5 ,5)
 
 def EventUpdate(event):
-    GameScreen.EventUpdate(event)
+    global SelectedScreen
+
+    SelectedScreen.EventUpdate(event)

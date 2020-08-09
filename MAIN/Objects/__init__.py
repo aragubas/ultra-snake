@@ -68,12 +68,12 @@ class Player:
         self.Speed = 4
         self.PlayerColor = (randint(0, 255), randint(0, 255), randint(0, 255))
         self.Nickname = nickname
-        self.Score = 0
-        self.IsClient = False
+        self.Score = 1
         self.IsDead = False
         self.VarListClearWhenDeadTrigger = False
         self.VarList = list()
         self.IsOnScreen = False
+        self.Stop = False
 
     def Draw(self, DISPLAY):
         # -- draw the snake -- #
@@ -101,10 +101,8 @@ class Player:
 
         game.Game.ConteudoPadrao.FontRender(DISPLAY, "/PressStart2P.ttf", 12, Text, (255, 255, 255), TextX, TextY, backgroundColor=(0, 0, 0), Opacity=Opacity)
 
-    def Update(self):
-        self.Rectangle = pygame.Rect(self.PlayerPos[0], self.PlayerPos[1], 26, 26)
-
-        # Move the Player
+    def MovePlayer(self):
+        # -- Move the Player only when it's not dead -- #
         if not self.IsDead:
             if self.MovPos == 0:
                 self.PlayerPos = (self.PlayerPos[0] + self.Speed, self.PlayerPos[1])
@@ -130,6 +128,12 @@ class Player:
 
         if self.PlayerPos[1] + self.Rectangle[3] >= game.ArenaSize[1]:
             self.PlayerPos = (self.PlayerPos[0], game.ArenaSize[1] - self.Rectangle[3])
+
+    def Update(self):
+        self.Rectangle = pygame.Rect(self.PlayerPos[0], self.PlayerPos[1], 26, 26)
+
+        if not self.Stop:
+            self.MovePlayer()
 
         # Limit Snake Size
         if self.SnakeSize > 700:

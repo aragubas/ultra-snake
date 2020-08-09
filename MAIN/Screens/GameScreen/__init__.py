@@ -69,22 +69,19 @@ def GameDraw(DISPLAY):
             jogador.IsOnScreen = False
 
     for food in ColecaoComida:
-        food.Render(DISPLAY)
+        if Game.ConteudoPadrao.IsOnScreen(DISPLAY, CameraX + food.Rectangle[0], CameraY + food.Rectangle[1], food.Rectangle[2], food.Rectangle[3]):
+            food.Render(DISPLAY)
 
+    # -- Render Player Statistics -- #
     HUD_Surface = pygame.Surface((475, 100))
-    ScreenCopy = pygame.Surface((HUD_Surface.get_width(), HUD_Surface.get_height()), pygame.SRCALPHA)
-    ScreenCopy.blit(DISPLAY, (0, 0), (5, 600 - HUD_Surface.get_height() - 5, HUD_Surface.get_width(), HUD_Surface.get_height()))
-    DarkRect = pygame.Surface((HUD_Surface.get_width(), HUD_Surface.get_height()), pygame.SRCALPHA)
-    DarkRect.fill((0, 0, 0, 200))
-    ScreenCopy.blit(DarkRect, (0, 0))
-
-
-    HUD_Surface.blit(fx.Surface_Blur(ScreenCopy, 15), (0, 0))
-
-
-    RenderHUD(HUD_Surface)
-
+    RenderHUD(HUD_Surface, DISPLAY)
     DISPLAY.blit(HUD_Surface, (5, 600 - HUD_Surface.get_height() - 5))
+
+    # -- Render Scoreboard -- #
+    HUD_Surface = pygame.Surface((200, 230))
+    RenderScoreboard(HUD_Surface, DISPLAY)
+    DISPLAY.blit(HUD_Surface, (800 - HUD_Surface.get_width() + 5, 5))
+
 
 def RenderMap(DISPLAY):
     # Draw the Borders
@@ -94,8 +91,34 @@ def RenderMap(DISPLAY):
         for y in range(int(ArenaSize[1] / 60)):
             Game.ConteudoPadrao.ImageRender(DISPLAY, "/Background.png", CameraX + x * 64, CameraY + y * 64)
 
-def RenderHUD(DISPLAY):
+def RenderScoreboard(DISPLAY, SourceDisplay):
+    global ColecaoJogador
+    ScreenCopy = pygame.Surface((DISPLAY.get_width(), DISPLAY.get_height()), pygame.SRCALPHA)
+    ScreenCopy.blit(SourceDisplay, (0, 0), (5, 600 - DISPLAY.get_height() - 5, DISPLAY.get_width(), DISPLAY.get_height()))
+    DarkRect = pygame.Surface((DISPLAY.get_width(), DISPLAY.get_height()), pygame.SRCALPHA)
+    DarkRect.fill((0, 0, 0, 200))
+    ScreenCopy.blit(DarkRect, (0, 0))
+    DISPLAY.blit(fx.Surface_Blur(ScreenCopy, 15), (0, 0))
+
+    Text = " -- The Best of {0}'s -- \n".format(len(ColecaoJogador))
+
+    for jogador in ColecaoJogador:
+        Text += "{0} : {1}\n".format(jogador.Nickname, utils.FormatNumber(jogador.Score).replace(".00", ""))
+
+    Game.ConteudoPadrao.FontRender(DISPLAY, "/PressStart2P.ttf", 8, Text, (230, 230, 230), 3, 3)
+
+    DISPLAY.set_alpha(100)
+
+def RenderHUD(DISPLAY, SourceDisplay):
     global MessagesScroll
+
+    ScreenCopy = pygame.Surface((DISPLAY.get_width(), DISPLAY.get_height()), pygame.SRCALPHA)
+    ScreenCopy.blit(SourceDisplay, (0, 0), (5, 600 - DISPLAY.get_height() - 5, DISPLAY.get_width(), DISPLAY.get_height()))
+    DarkRect = pygame.Surface((DISPLAY.get_width(), DISPLAY.get_height()), pygame.SRCALPHA)
+    DarkRect.fill((0, 0, 0, 200))
+    ScreenCopy.blit(DarkRect, (0, 0))
+    DISPLAY.blit(fx.Surface_Blur(ScreenCopy, 15), (0, 0))
+
 
     Text = "null"
     if not Jogador is None:
@@ -152,7 +175,6 @@ def AddMessage(text):
     MessagesList.append(text)
     Game.ConteudoPadrao.PlaySound("/Chat_Message.wav")
 
-
 def DeletePlayer():
     global Jogador
     global ColecaoJogador
@@ -176,6 +198,7 @@ def Reset():
     global SpectatorModePlayerToFocusObject
     global SpectatorModePlayerToFocusToggle
     del Jogador
+    global ArenaSize
 
     Jogador = None
 
@@ -185,10 +208,11 @@ def Reset():
     MessagesList.clear()
     MessagesScroll = 0
 
-    ArenaSize = (randint(100, 1000), randint(100, 1000))
-
     ColecaoJogador.append(Objects.Player(CurrentNickname))
     FocusCameraPlayerObj = ColecaoJogador[0]
+
+    for _ in range(32):
+        ColecaoComida.append(Objects.Food(randint(0, ArenaSize[0]), randint(0, ArenaSize[1])))
 
     for i in range(0, 24):
         utils.GarbageCollector_Collect()
@@ -214,7 +238,6 @@ def SpectateRandomPlayer(random_player=True, index=0):
     SpectatorModePlayerToFocusToggle = True
 
     AddMessage("$#Spectating:" + ColecaoJogador[Index].Nickname)
-
 
 def Update():
     global Jogador
@@ -326,6 +349,7 @@ def Update():
                 if jogador.Rectangle.colliderect(player.Rectangle) and jogador.Score > 1 and not player.IsDead:
                     player.IsDead = True
                     jogador.IsDead = False
+                    jogador.Score += player.Score
 
         # -- Delete Player when Dead -- #
         if jogador.IsDead:
@@ -336,72 +360,57 @@ def Update():
 
                 Game.ConteudoPadrao.PlaySound("/Player_Dead.wav")
 
-        # -- Update bot AI -- #
-        try:
-            if not Jogador == jogador:
+            if not jogador.Nickname == CurrentNickname:
+                ColecaoJogador[ColecaoJogador.index(jogador)] = Objects.Player(utils.Random_String(12))
+                break
+
+        if not jogador.Nickname == CurrentNickname and not jogador.IsDead:
+            try:
+                jogador.Stop = True
                 DestX = jogador.VarList[0].Rectangle[0]
                 DestY = jogador.VarList[0].Rectangle[1]
+                jogador.MovePlayer()
 
-                if not jogador.VarList[1]:
-                    if jogador.Rectangle[0] <= DestX:
-                        jogador.MovPos = 0
 
-                    if jogador.Rectangle[0] >= DestX:
-                        jogador.MovPos = 1
+                if DestX - jogador.Speed < jogador.PlayerPos[0]:
+                    jogador.PlayerPos = (jogador.PlayerPos[0] - jogador.Speed, jogador.PlayerPos[1])
+                    jogador.MovPos = 1
 
-                    if jogador.Rectangle[0] == DestX - jogador.Speed and jogador.Rectangle[0] == DestY:
-                        jogador.VarList.clear()
-                        if jogador.PlayerPos[1] >= 50:
-                            jogador.MovPos = 3
-                        else:
-                            jogador.MovPos = 2
 
-                        if jogador.PlayerPos[0] >= 50:
-                            jogador.MovPos = 0
-                        else:
-                            jogador.MovPos = 1
+                if DestX - jogador.Speed > jogador.PlayerPos[0]:
+                    jogador.PlayerPos = (jogador.PlayerPos[0] + jogador.Speed, jogador.PlayerPos[1])
+                    jogador.MovPos = 0
 
-                    jogador.VarList[1] = True
+                if DestY - jogador.Speed < jogador.PlayerPos[1]:
+                    jogador.PlayerPos = (jogador.PlayerPos[0], jogador.PlayerPos[1] - jogador.Speed)
+                    jogador.MovPos = 3
 
-                elif jogador.VarList[1]:
-                    if jogador.Rectangle[1] < DestY:
-                        jogador.MovPos = 2
-
-                    if jogador.Rectangle[1] > DestY:
-                        jogador.MovPos = 3
-
-                    jogador.VarList[1] = False
+                if DestY - jogador.Speed > jogador.PlayerPos[1]:
+                    jogador.PlayerPos = (jogador.PlayerPos[0], jogador.PlayerPos[1] + jogador.Speed)
+                    jogador.MovPos = 2
 
                 # -- Check if food exists -- #
-                try:
-                    # -- Food Exists -- #
-                    Food = ColecaoComida[jogador.VarList[2]]
+                Found = False
+                for food in ColecaoComida:
+                    if food == jogador.VarList[0]:
+                        Found = True
 
-                    if Food.Deleted:
-                        jogador.VarList.clear()
-                        if jogador.PlayerPos[1] >= 50:
-                            jogador.MovPos = 3
-                        else:
-                            jogador.MovPos = 2
+                if not Found:
+                    Index = randint(0, len(ColecaoComida) - 1)
+                    RandomFood = ColecaoComida[Index]
+                    print("Novo endereço de Cumida:\n" + str(Index))
 
-                        if jogador.PlayerPos[0] >= 50:
-                            jogador.MovPos = 0
-                        else:
-                            jogador.MovPos = 1
-
-
-                except IndexError:
-                    # -- If not exists, clear all variables -- #
                     jogador.VarList.clear()
+                    jogador.VarList.append(RandomFood)
+                    jogador.VarList.append(False)
 
-        except IndexError:
-            if not i == CurrentIndex:
-                RandomFoodIndex = randint(0, len(ColecaoComida) - 1)
+            except IndexError:
+                Index = randint(0, len(ColecaoComida) - 1)
+                RandomFood = ColecaoComida[Index]
+                print(Index)
 
-                jogador.VarList.append(ColecaoComida[RandomFoodIndex])
+                jogador.VarList.append(RandomFood)
                 jogador.VarList.append(False)
-                jogador.VarList.append(RandomFoodIndex)
-
 
 
 def EventUpdate(event):
@@ -471,3 +480,8 @@ def EventUpdate(event):
     if event.type == pygame.KEYUP and event.key == pygame.K_r:
         Reset()
         Game.ConteudoPadrao.PlaySound("/HUD_Click.wav")
+
+
+
+
+
